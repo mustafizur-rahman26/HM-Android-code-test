@@ -1,7 +1,9 @@
 package com.example.hmcodetest.di
 
 import com.example.hmcodetest.BuildConfig
-import com.example.hmcodetest.data.ApiService
+import com.example.hmcodetest.data.remote.ApiService
+import com.example.hmcodetest.data.repository.ProductsRepositoryImpl
+import com.example.hmcodetest.domain.repository.ProductsRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -46,7 +48,7 @@ object NetworkModule {
             .create(ApiService::class.java)
     }
 
-//    @Provides
-//    @Singleton
-//    fun providesRepository(repositoryImpl: RepositoryImpl): Repository = repositoryImpl
+    @Provides
+    @Singleton
+    fun providesRepository(repositoryImpl: ProductsRepositoryImpl): ProductsRepository = repositoryImpl
 }

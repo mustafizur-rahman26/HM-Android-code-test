@@ -14,9 +14,7 @@ detekt {
 
 android {
     namespace = "com.example.hmcodetest"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.hmcodetest"
@@ -27,7 +25,7 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        val baseUrl = "https://s3.amazonaws.com/"
+        val baseUrl = "https://api.hm.com/"
         buildConfigField("String", "BASE_URL", "\"${baseUrl}\"")
     }
 
@@ -75,6 +73,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.converter)
     implementation(libs.hilt.navigation.compose)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.coil)
 
     // Test Dependencies
     testImplementation(libs.mockito.core)

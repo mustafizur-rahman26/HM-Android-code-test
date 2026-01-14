@@ -17,9 +17,17 @@
 package com.example.hmcodetest.util
 
 sealed class Async<out T> {
-    object Loading : Async<Nothing>()
-
-    data class Error(val errorMessage: Int) : Async<Nothing>()
+    data class Error(val errorMessage: String) : Async<Nothing>()
 
     data class Success<out T>(val data: T) : Async<T>()
+
+    inline fun onSuccess(action: (T) -> Unit): Async<T> {
+        if (this is Success) action(data)
+        return this
+    }
+
+    inline fun onError(action: (String) -> Unit): Async<T> {
+        if (this is Error) action(errorMessage)
+        return this
+    }
 }
