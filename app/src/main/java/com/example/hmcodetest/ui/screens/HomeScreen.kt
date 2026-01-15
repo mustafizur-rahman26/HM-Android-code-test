@@ -14,10 +14,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,12 +29,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.ColorPainter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import coil.request.CachePolicy
+import coil.request.ImageRequest
 import com.example.hmcodetest.domain.model.Product
 import com.example.hmcodetest.domain.model.Swatch
 import com.example.hmcodetest.ui.theme.Dimensions
@@ -41,20 +48,33 @@ fun HomeScreen(
     productsViewModel: ProductsViewModel = hiltViewModel()
 ) {
     val uiState by productsViewModel.uiState.collectAsStateWithLifecycle()
+    val gridState = rememberLazyGridState()
+
+    LaunchedEffect(Unit) {
+        productsViewModel.events.collect { event ->
+            when (event) {
+                is UiEvent.ScrollToTop -> {
+                    gridState.animateScrollToItem(0)
+                }
+            }
+        }
+    }
 
     ProductsContent(
         uiState = uiState,
-        onLoadMore = { productsViewModel.loadMoreProducts() }
+        gridState = gridState,
+        onLoadMore = { productsViewModel.loadMoreProducts() },
+        onScrollToTop = { productsViewModel.onScrollToTopClicked() }
     )
 }
 
 @Composable
 fun ProductsContent(
     uiState: UiState,
-    onLoadMore: () -> Unit = {}
+    gridState: LazyGridState = rememberLazyGridState(),
+    onLoadMore: () -> Unit,
+    onScrollToTop: () -> Unit
 ) {
-    val gridState = rememberLazyGridState()
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -133,12 +153,27 @@ fun ProductsContent(
                     // Trigger load more when reaching near end
                     if (uiState.hasMorePages && !uiState.isLoadingMore) {
                         item(span = { GridItemSpan(maxLineSpan) }) {
-                            LaunchedEffect(Unit) {
-                                onLoadMore()
-                            }
+                            onLoadMore()
                         }
                     }
                 }
+            }
+        }
+
+        // Floating Action Button - Scroll to top
+        if (uiState.shouldShowScrollToTopButton) {
+            FloatingActionButton(
+                modifier = Modifier
+                    .padding(Dimensions.controlDoubleSpace)
+                    .align(Alignment.BottomEnd),
+                shape = CircleShape,
+                onClick = onScrollToTop,
+            ) {
+                Text(
+                    text = "↑",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
             }
         }
     }
@@ -155,11 +190,18 @@ private fun ProductGridItem(
     ) {
         // Product Image
         AsyncImage(
-            model = product.thumbnail,
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(product.thumbnail)
+                .memoryCachePolicy(CachePolicy.ENABLED)
+                .diskCachePolicy(CachePolicy.ENABLED)
+                .networkCachePolicy(CachePolicy.ENABLED)
+                .build(),
             contentDescription = product.name,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(300.dp)
+                .height(300.dp),
+            placeholder = ColorPainter(Color(0xFFF5F5F5)),
+            error = ColorPainter(Color(0xFFEEEEEE))
         )
 
         Spacer(modifier = Modifier.height(Dimensions.controlSpace))
@@ -209,20 +251,25 @@ private fun ProductGridItem(
 }
 
 @Composable
-private fun ColorSwatchesRow(swatches: List<Swatch>) {
+private fun ColorSwatchesRow(
+    swatches: List<Swatch>,
+    maxVisibleSwatches: Int = 3
+) {
+    val visibleSwatches = swatches.take(maxVisibleSwatches)
+    val remainingCount = (swatches.size - maxVisibleSwatches).coerceAtLeast(0)
+    val hasMoreSwatches = remainingCount > 0
+
     Row(
         horizontalArrangement = Arrangement.spacedBy(Dimensions.controlHalfSpace),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Show first 3 swatches
-        swatches.take(3).forEach { swatch ->
+        visibleSwatches.forEach { swatch ->
             ColorSwatchBox(swatch = swatch)
         }
 
-        // Show "+N" indicator if more than 3 colors
-        if (swatches.size > 3) {
+        if (hasMoreSwatches) {
             Text(
-                text = "+${swatches.size - 3}",
+                text = "+$remainingCount",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 modifier = Modifier.padding(start = 2.dp)
@@ -265,7 +312,9 @@ private fun ProductsContentPreview() {
                 products = getSampleProducts(),
                 isLoading = false,
                 error = null
-            )
+            ),
+            onLoadMore = {},
+            onScrollToTop = {}
         )
     }
 }
@@ -279,7 +328,9 @@ private fun ProductsContentLoadingPreview() {
                 products = emptyList(),
                 isLoading = true,
                 error = null
-            )
+            ),
+            onLoadMore = {},
+            onScrollToTop = {}
         )
     }
 }
@@ -293,7 +344,9 @@ private fun ProductsContentErrorPreview() {
                 products = emptyList(),
                 isLoading = false,
                 error = "Failed to load products"
-            )
+            ),
+            onLoadMore = {},
+            onScrollToTop = {}
         )
     }
 }
@@ -307,7 +360,9 @@ private fun ProductsContentEmptyPreview() {
                 products = emptyList(),
                 isLoading = false,
                 error = null
-            )
+            ),
+            onLoadMore = {},
+            onScrollToTop = {}
         )
     }
 }

@@ -9,6 +9,7 @@ import com.example.hmcodetest.domain.model.Swatch
 fun SearchResponseDto.toPaginatedProducts(): PaginatedProducts = PaginatedProducts(
     products = this.searchHits.productList.map { it.toProduct() },
     currentPage = this.pagination.currentPage,
+    nextPage = this.pagination.nextPageNum,
     totalPages = this.pagination.totalPages,
 )
 

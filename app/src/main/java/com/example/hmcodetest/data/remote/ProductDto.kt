@@ -58,7 +58,7 @@ data class PaginationDto(
     val currentPage: Int,
 
     @SerialName("nextPageNum")
-    val nextPageNum: Int,
+    val nextPageNum: Int?,
     
     @SerialName("totalPages")
     val totalPages: Int
