@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
@@ -31,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -64,6 +66,7 @@ fun HomeScreen(
         uiState = uiState,
         gridState = gridState,
         onLoadMore = { productsViewModel.loadMoreProducts() },
+        onRetryLoadMore = { productsViewModel.retryLoadMore() },
         onScrollToTop = { productsViewModel.onScrollToTopClicked() }
     )
 }
@@ -73,6 +76,7 @@ fun ProductsContent(
     uiState: UiState,
     gridState: LazyGridState = rememberLazyGridState(),
     onLoadMore: () -> Unit,
+    onRetryLoadMore: () -> Unit,
     onScrollToTop: () -> Unit
 ) {
     Box(
@@ -92,7 +96,7 @@ fun ProductsContent(
                 }
             }
 
-            uiState.error != null && uiState.products.isEmpty() -> {
+            uiState.errorMessage != null && uiState.products.isEmpty() -> {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -101,10 +105,15 @@ fun ProductsContent(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = "Error: ${uiState.error}",
+                        modifier = Modifier.padding(bottom = Dimensions.controlDoubleSpace),
+                        text = "Error: ${uiState.errorMessage}",
+                        textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.error
+                        color = MaterialTheme.colorScheme.error,
                     )
+                    Button(onClick = onRetryLoadMore) {
+                        Text("Retry")
+                    }
                 }
             }
 
@@ -149,11 +158,34 @@ fun ProductsContent(
                             }
                         }
                     }
-
-                    // Trigger load more when reaching near end
-                    if (uiState.hasMorePages && !uiState.isLoadingMore) {
+                    
+                    // Error at bottom with retry button
+                    if (uiState.errorMessage != null && uiState.products.isNotEmpty()) {
                         item(span = { GridItemSpan(maxLineSpan) }) {
-                            onLoadMore()
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(Dimensions.controlDoubleSpace),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = uiState.errorMessage,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.padding(bottom = Dimensions.controlSpace)
+                                )
+                                Button(onClick = onRetryLoadMore) {
+                                    Text("Retry")
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (uiState.shouldLoadMore) {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            LaunchedEffect(Unit) {
+                                onLoadMore()
+                            }
                         }
                     }
                 }
@@ -311,9 +343,10 @@ private fun ProductsContentPreview() {
             uiState = UiState(
                 products = getSampleProducts(),
                 isLoading = false,
-                error = null
+                errorMessage = null
             ),
             onLoadMore = {},
+            onRetryLoadMore = {},
             onScrollToTop = {}
         )
     }
@@ -327,9 +360,10 @@ private fun ProductsContentLoadingPreview() {
             uiState = UiState(
                 products = emptyList(),
                 isLoading = true,
-                error = null
+                errorMessage = null
             ),
             onLoadMore = {},
+            onRetryLoadMore = {},
             onScrollToTop = {}
         )
     }
@@ -343,9 +377,10 @@ private fun ProductsContentErrorPreview() {
             uiState = UiState(
                 products = emptyList(),
                 isLoading = false,
-                error = "Failed to load products"
+                errorMessage = "Failed to load products"
             ),
             onLoadMore = {},
+            onRetryLoadMore = {},
             onScrollToTop = {}
         )
     }
@@ -359,9 +394,10 @@ private fun ProductsContentEmptyPreview() {
             uiState = UiState(
                 products = emptyList(),
                 isLoading = false,
-                error = null
+                errorMessage = null
             ),
             onLoadMore = {},
+            onRetryLoadMore = {},
             onScrollToTop = {}
         )
     }

@@ -1,33 +1,40 @@
-/*
- * Copyright 2022 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.example.hmcodetest.util
 
 sealed class Async<out T> {
-    data class Error(val errorMessage: String) : Async<Nothing>()
+    data class Error(val errorMessage: String, val errorType: ErrorType = ErrorType.UNKNOWN) : Async<Nothing>()
 
     data class Success<out T>(val data: T) : Async<T>()
 
-    inline fun onSuccess(action: (T) -> Unit): Async<T> {
+    fun onSuccess(action: (T) -> Unit): Async<T> {
         if (this is Success) action(data)
         return this
     }
 
-    inline fun onError(action: (String) -> Unit): Async<T> {
+    fun onError(action: (String) -> Unit): Async<T> {
         if (this is Error) action(errorMessage)
         return this
     }
+}
+
+enum class ErrorType {
+    /** No internet connection available */
+    NO_INTERNET,
+    
+    /** Request timeout */
+    TIMEOUT,
+    
+    /** Server returned 4xx error (client error) */
+    CLIENT_ERROR,
+    
+    /** Server returned 5xx error (server error) */
+    SERVER_ERROR,
+    
+    /** Network error (connection failed, DNS failure, etc.) */
+    NETWORK_ERROR,
+    
+    /** Data parsing/serialization error */
+    PARSING_ERROR,
+    
+    /** Unknown or unhandled error */
+    UNKNOWN
 }

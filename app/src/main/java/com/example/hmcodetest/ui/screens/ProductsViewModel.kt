@@ -22,13 +22,16 @@ data class UiState(
     val products: List<Product> = emptyList(),
     val isLoading: Boolean = false,
     val isLoadingMore: Boolean = false,
-    val error: String? = null,
+    val errorMessage: String? = null,
     val hasMorePages: Boolean = true,
     val currentPage: Int = 0,
     val nextPage: Int? = null
 ) {
     val shouldShowScrollToTopButton: Boolean
         get() = currentPage > 3
+
+    val shouldLoadMore: Boolean
+        get() = hasMorePages && !isLoadingMore && errorMessage == null
 }
 
 @HiltViewModel
@@ -56,7 +59,7 @@ class ProductsViewModel @Inject constructor(
         }
 
         loadingJob = viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             loadProducts(page = 1)
         }
     }
@@ -70,7 +73,7 @@ class ProductsViewModel @Inject constructor(
         loadingJob = viewModelScope.launch {
             val nextPage = uiStateVal.nextPage ?: (uiStateVal.currentPage + 1)
 
-            _uiState.update { it.copy(isLoadingMore = true, error = null) }
+            _uiState.update { it.copy(isLoadingMore = true, errorMessage = null) }
             loadProducts(page = nextPage)
         }
     }
@@ -84,7 +87,7 @@ class ProductsViewModel @Inject constructor(
                         products = (currentUiState.products + data.products).distinctBy { it.id },
                         isLoading = false,
                         isLoadingMore = false,
-                        error = null,
+                        errorMessage = null,
                         hasMorePages = data.hasMorePages,
                         currentPage = data.currentPage,
                         nextPage = data.nextPage
@@ -96,10 +99,18 @@ class ProductsViewModel @Inject constructor(
                     it.copy(
                         isLoading = false,
                         isLoadingMore = false,
-                        error = error
+                        errorMessage = error
                     )
                 }
             }
+    }
+
+    fun retryLoadMore() {
+        _uiState.update { it.copy(errorMessage = null) }
+
+        takeIf { uiStateVal.products.isEmpty() }
+            ?.let { loadInitialProducts() }
+            ?: loadMoreProducts()
     }
 
     fun onScrollToTopClicked() {
@@ -110,7 +121,7 @@ class ProductsViewModel @Inject constructor(
                 currentPage = 1,
                 isLoading = false,
                 isLoadingMore = false,
-                error = null
+                errorMessage = null
             )
         }
 

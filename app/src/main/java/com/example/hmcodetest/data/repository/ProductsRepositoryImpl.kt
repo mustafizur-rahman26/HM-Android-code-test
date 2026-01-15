@@ -6,6 +6,8 @@ import com.example.hmcodetest.di.IoDispatcher
 import com.example.hmcodetest.domain.repository.ProductsRepository
 import com.example.hmcodetest.domain.model.PaginatedProducts
 import com.example.hmcodetest.util.Async
+import com.example.hmcodetest.util.toErrorMessage
+import com.example.hmcodetest.util.toErrorType
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -33,9 +35,8 @@ class ProductsRepositoryImpl @Inject constructor(
             },
             onFailure = { error ->
                 Async.Error(
-                    errorMessage = error.message
-                        ?.takeIf { it.isNotEmpty() }
-                        ?: "Failed to fetch products"
+                    errorMessage = error.toErrorMessage(),
+                    errorType = error.toErrorType()
                 )
             }
         )
