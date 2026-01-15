@@ -7,10 +7,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -31,7 +34,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.ColorPainter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -82,7 +92,7 @@ fun ProductsContent(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(vertical = Dimensions.controlQuadrupleSpace)
+            .padding(vertical = 40.dp)
     ) {
         when {
             uiState.isLoading -> {
@@ -91,7 +101,11 @@ fun ProductsContent(
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .semantics {
+                                contentDescription = "Loading products"
+                            }
                     )
                 }
             }
@@ -105,13 +119,24 @@ fun ProductsContent(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        modifier = Modifier.padding(bottom = Dimensions.controlDoubleSpace),
+                        modifier = Modifier
+                            .padding(bottom = Dimensions.controlDoubleSpace)
+                            .semantics {
+                                liveRegion = LiveRegionMode.Polite
+                            },
                         text = "Error: ${uiState.errorMessage}",
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.error,
                     )
-                    Button(onClick = onRetryLoadMore) {
+                    Button(
+                        modifier = Modifier
+                            .heightIn(min = 48.dp)
+                            .semantics {
+                                contentDescription = "Retry loading products"
+                            },
+                        onClick = onRetryLoadMore,
+                    ) {
                         Text("Retry")
                     }
                 }
@@ -127,7 +152,10 @@ fun ProductsContent(
                 ) {
                     Text(
                         text = "No products available",
-                        style = MaterialTheme.typography.bodyLarge
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.semantics {
+                            contentDescription = "No products available. Please try again later."
+                        }
                     )
                 }
             }
@@ -154,7 +182,11 @@ fun ProductsContent(
                                     .padding(Dimensions.controlDoubleSpace),
                                 contentAlignment = Alignment.Center
                             ) {
-                                CircularProgressIndicator()
+                                CircularProgressIndicator(
+                                    modifier = Modifier.semantics {
+                                        contentDescription = "Loading more products"
+                                    }
+                                )
                             }
                         }
                     }
@@ -169,12 +201,22 @@ fun ProductsContent(
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(
+                                    modifier = Modifier
+                                        .padding(bottom = Dimensions.controlSpace)
+                                        .semantics { liveRegion = LiveRegionMode.Polite },
                                     text = uiState.errorMessage,
+                                    textAlign = TextAlign.Center,
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.padding(bottom = Dimensions.controlSpace)
+                                    color = MaterialTheme.colorScheme.error
                                 )
-                                Button(onClick = onRetryLoadMore) {
+                                Button(
+                                    modifier = Modifier
+                                        .heightIn(min = 48.dp)
+                                        .semantics {
+                                            contentDescription = "Retry loading more products"
+                                        },
+                                    onClick = onRetryLoadMore,
+                                ) {
                                     Text("Retry")
                                 }
                             }
@@ -197,7 +239,12 @@ fun ProductsContent(
             FloatingActionButton(
                 modifier = Modifier
                     .padding(Dimensions.controlDoubleSpace)
-                    .align(Alignment.BottomEnd),
+                    .align(Alignment.BottomEnd)
+                    .sizeIn(minWidth = 56.dp, minHeight = 56.dp)
+                    .semantics {
+                        contentDescription = "Scroll to top of product list"
+                        role = Role.Button
+                    },
                 shape = CircleShape,
                 onClick = onScrollToTop,
             ) {
@@ -217,21 +264,27 @@ private fun ProductGridItem(
 ) {
     Column(
         modifier = Modifier
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) {
+                contentDescription = "${product.brand} ${product.name}, priced at ${product.price ?: "price not available"}"
+                role = Role.Button
+            },
         horizontalAlignment = Alignment.Start
     ) {
         // Product Image
         AsyncImage(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 250.dp, max = 350.dp)
+                .aspectRatio(0.75f),
             model = ImageRequest.Builder(LocalContext.current)
                 .data(product.thumbnail)
                 .memoryCachePolicy(CachePolicy.ENABLED)
                 .diskCachePolicy(CachePolicy.ENABLED)
                 .networkCachePolicy(CachePolicy.ENABLED)
                 .build(),
-            contentDescription = product.name,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(300.dp),
+            contentDescription = "Product image for ${product.brand} ${product.name}",
+            contentScale = ContentScale.FillHeight,
             placeholder = ColorPainter(Color(0xFFF5F5F5)),
             error = ColorPainter(Color(0xFFEEEEEE))
         )
@@ -253,7 +306,7 @@ private fun ProductGridItem(
                 overflow = TextOverflow.Ellipsis
             )
 
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(Dimensions.controlHalfSpace))
 
             // Product Name
             Text(
@@ -263,7 +316,7 @@ private fun ProductGridItem(
                 overflow = TextOverflow.Ellipsis,
             )
 
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(Dimensions.controlHalfSpace))
 
             // Price with currency
             Text(
@@ -290,10 +343,19 @@ private fun ColorSwatchesRow(
     val visibleSwatches = swatches.take(maxVisibleSwatches)
     val remainingCount = (swatches.size - maxVisibleSwatches).coerceAtLeast(0)
     val hasMoreSwatches = remainingCount > 0
+    
+    val colorDescription = if (hasMoreSwatches) {
+        "Available in ${swatches.size} colors"
+    } else {
+        "Available in ${swatches.size} color${if (swatches.size > 1) "s" else ""}"
+    }
 
     Row(
         horizontalArrangement = Arrangement.spacedBy(Dimensions.controlHalfSpace),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.semantics(mergeDescendants = true) {
+            contentDescription = colorDescription
+        }
     ) {
         visibleSwatches.forEach { swatch ->
             ColorSwatchBox(swatch = swatch)
@@ -301,10 +363,10 @@ private fun ColorSwatchesRow(
 
         if (hasMoreSwatches) {
             Text(
+                modifier = Modifier.padding(start = 2.dp),
                 text = "+$remainingCount",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                modifier = Modifier.padding(start = 2.dp)
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
         }
     }
@@ -314,7 +376,7 @@ private fun ColorSwatchesRow(
 private fun ColorSwatchBox(swatch: Swatch) {
     Box(
         modifier = Modifier
-            .size(12.dp)
+            .size(16.dp)
             .border(
                 width = 0.5.dp,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
@@ -409,6 +471,50 @@ private fun ProductGridItemPreview() {
     MaterialTheme {
         ProductGridItem(
             product = getSampleProducts().first()
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Product Grid Item - Large Font", fontScale = 1.5f)
+@Composable
+private fun ProductGridItemLargeFontPreview() {
+    MaterialTheme {
+        ProductGridItem(
+            product = getSampleProducts().first()
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Products Grid - Large Font", fontScale = 1.5f)
+@Composable
+private fun ProductsContentLargeFontPreview() {
+    MaterialTheme {
+        ProductsContent(
+            uiState = UiState(
+                products = getSampleProducts(),
+                isLoading = false,
+                errorMessage = null
+            ),
+            onLoadMore = {},
+            onRetryLoadMore = {},
+            onScrollToTop = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Error State - Large Font", fontScale = 1.5f)
+@Composable
+private fun ProductsContentErrorLargeFontPreview() {
+    MaterialTheme {
+        ProductsContent(
+            uiState = UiState(
+                products = emptyList(),
+                isLoading = false,
+                errorMessage = "Failed to load products"
+            ),
+            onLoadMore = {},
+            onRetryLoadMore = {},
+            onScrollToTop = {}
         )
     }
 }
