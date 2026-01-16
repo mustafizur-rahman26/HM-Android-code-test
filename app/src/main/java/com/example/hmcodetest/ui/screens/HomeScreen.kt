@@ -34,7 +34,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.ColorPainter
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -76,7 +75,7 @@ fun HomeScreen(
         uiState = uiState,
         gridState = gridState,
         onLoadMore = { productsViewModel.loadMoreProducts() },
-        onRetryLoadMore = { productsViewModel.retryLoadMore() },
+        onRetryLoadMore = { productsViewModel.retryLoadProducts() },
         onScrollToTop = { productsViewModel.onScrollToTopClicked() }
     )
 }
@@ -275,7 +274,6 @@ private fun ProductGridItem(
         AsyncImage(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 250.dp, max = 350.dp)
                 .aspectRatio(0.75f),
             model = ImageRequest.Builder(LocalContext.current)
                 .data(product.thumbnail)
@@ -284,7 +282,6 @@ private fun ProductGridItem(
                 .networkCachePolicy(CachePolicy.ENABLED)
                 .build(),
             contentDescription = "Product image for ${product.brand} ${product.name}",
-            contentScale = ContentScale.FillHeight,
             placeholder = ColorPainter(Color(0xFFF5F5F5)),
             error = ColorPainter(Color(0xFFEEEEEE))
         )
@@ -312,7 +309,7 @@ private fun ProductGridItem(
             Text(
                 text = product.name.uppercase(),
                 style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
 

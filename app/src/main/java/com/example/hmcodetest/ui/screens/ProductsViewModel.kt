@@ -105,7 +105,7 @@ class ProductsViewModel @Inject constructor(
             }
     }
 
-    fun retryLoadMore() {
+    fun retryLoadProducts() {
         _uiState.update { it.copy(errorMessage = null) }
 
         takeIf { uiStateVal.products.isEmpty() }
