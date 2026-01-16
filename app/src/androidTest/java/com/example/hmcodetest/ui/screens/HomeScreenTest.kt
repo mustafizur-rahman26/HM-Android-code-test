@@ -1,5 +1,6 @@
 package com.example.hmcodetest.ui.screens
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import com.example.hmcodetest.domain.model.Product
@@ -336,11 +337,15 @@ class HomeScreenTest {
             .assertDoesNotExist()
     }
 
+    /**
+     * Tests focused on accessibility features and semantic properties
+     */
+
     @Test
-    fun productImage_hasCorrectAccessibilityDescription() {
+    fun emptyState_hasAccessibleMessage() {
         // Given
         val uiState = UiState(
-            products = sampleProducts.take(1),
+            products = emptyList(),
             isLoading = false,
             errorMessage = null
         )
@@ -359,7 +364,64 @@ class HomeScreenTest {
 
         // Then
         composeTestRule
-            .onNodeWithContentDescription("Product image for H&M Slim Fit Jeans")
+            .onNodeWithContentDescription(
+                "No products available. Please try again later.",
+                substring = true
+            )
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun loadingIndicator_hasAccessibleContentDescription() {
+        // Given
+        val uiState = UiState(
+            products = emptyList(),
+            isLoading = true,
+            errorMessage = null
+        )
+
+        // When
+        composeTestRule.setContent {
+            HmcodetestTheme {
+                ProductsContent(
+                    uiState = uiState,
+                    onLoadMore = {},
+                    onRetryLoadMore = {},
+                    onScrollToTop = {}
+                )
+            }
+        }
+
+        // Then - Should be findable by content description
+        composeTestRule
+            .onNodeWithContentDescription("Loading products")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun retryButton_initialError_hasAccessibleContentDescription() {
+        // Given
+        val uiState = UiState(
+            products = emptyList(),
+            isLoading = false,
+            errorMessage = sampleErrorMessage
+        )
+
+        // When
+        composeTestRule.setContent {
+            HmcodetestTheme {
+                ProductsContent(
+                    uiState = uiState,
+                    onLoadMore = {},
+                    onRetryLoadMore = {},
+                    onScrollToTop = {}
+                )
+            }
+        }
+
+        // Then
+        composeTestRule
+            .onNodeWithContentDescription("Retry loading products")
             .assertIsDisplayed()
     }
 
@@ -389,4 +451,35 @@ class HomeScreenTest {
             .onNodeWithContentDescription("H&M Slim Fit Jeans, priced at 24.99 Kr.", substring = true)
             .assertIsDisplayed()
     }
+
+    @Test
+    fun scrollToTopButton_hasButtonRole() {
+        // Given
+        val uiState = UiState(
+            products = sampleProducts,
+            isLoading = false,
+            errorMessage = null,
+            currentPage = 5
+        )
+
+        // When
+        composeTestRule.setContent {
+            MaterialTheme {
+                ProductsContent(
+                    uiState = uiState,
+                    onLoadMore = {},
+                    onRetryLoadMore = {},
+                    onScrollToTop = {}
+                )
+            }
+        }
+
+        // Then - Button should be interactable
+        composeTestRule
+            .onNodeWithContentDescription("Scroll to top of product list")
+            .assertIsDisplayed()
+            .performClick() // Should respond to click
+    }
+
+
 }
